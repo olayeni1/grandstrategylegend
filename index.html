@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Grand Strategy — Legend Edition</title>
+<meta name="description" content="Build a civilization, command armies, forge alliances, and watch a living world evolve across decades. Installable, offline-ready strategy game.">
+<meta name="theme-color" content="#0b1020">
+<link rel="manifest" href="manifest.webmanifest">
+<!-- iOS / Safari add-to-home-screen -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Grand Strategy">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;overscroll-behavior:none}
+body{background:#0b1020;color:#e5e7eb;font-family:'Segoe UI',Arial;overflow:hidden;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+#topbar{position:fixed;top:0;left:0;right:0;height:46px;background:#111827;border-bottom:2px solid #1f2937;display:flex;align-items:center;gap:8px;padding:0 10px;z-index:30;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch}
+#topbar .stat{background:rgba(255,255,255,.05);padding:5px 9px;border-radius:5px;font-size:12px;white-space:nowrap}
+#topbar .stat b{color:#4ade80}
+button{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:5px;padding:6px 11px;font-size:12px;cursor:pointer;transition:transform .15s,box-shadow .15s;white-space:nowrap}
+button:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.35)}
+button:disabled{opacity:.45;cursor:not-allowed}
+.ctrl{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.05);padding:3px 6px;border-radius:5px}
+.ctrl span{font-size:11px;min-width:38px;text-align:center}
+.ctrl button{padding:3px 9px}
+#main{position:fixed;top:46px;left:0;right:0;bottom:0;display:flex}
+#mapWrap{flex:1;position:relative;background:#070b16;overflow:hidden}
+#view{display:block;width:100%;height:100%;cursor:grab;touch-action:none}
+#view:active{cursor:grabbing}
+#mini{position:absolute;right:10px;bottom:10px;border:2px solid rgba(255,255,255,.6);background:#070b16;border-radius:3px;cursor:pointer;touch-action:none}
+#hover{position:absolute;pointer-events:none;background:rgba(0,0,0,.85);border:1px solid #667eea;border-radius:5px;padding:6px 9px;font-size:11px;display:none;z-index:5;max-width:200px}
+#side{width:340px;background:#0f172a;border-left:2px solid #1f2937;display:flex;flex-direction:column}
+#sheetHandle{display:none}
+#tabs{display:flex;flex-wrap:wrap;gap:3px;padding:8px;border-bottom:1px solid #1f2937}
+#tabs button{flex:1;min-width:62px;background:#1e293b;font-size:11px;padding:6px 4px}
+#tabs button.active{background:linear-gradient(135deg,#667eea,#764ba2)}
+#tabContent{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px}
+.panel{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:7px;padding:11px;margin-bottom:11px}
+.panel h3{font-size:13px;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid rgba(255,255,255,.12);color:#a5b4fc}
+.row{display:flex;justify-content:space-between;font-size:12px;margin:5px 0}
+.row b{color:#4ade80}
+.item{background:rgba(255,255,255,.03);padding:7px 9px;border-radius:5px;margin:5px 0;font-size:11px}
+.item.click{cursor:pointer;border-left:3px solid #667eea}
+.item.click:hover{background:rgba(102,126,234,.18)}
+.news{font-size:11px;padding:5px 7px;margin:4px 0;background:rgba(255,255,255,.03);border-left:3px solid #667eea;border-radius:3px}
+.news.war{border-color:#ef4444}.news.peace{border-color:#10b981}.news.rev{border-color:#f59e0b}.news.good{border-color:#4ade80}
+.ally{border-left:3px solid #3b82f6;background:rgba(59,130,246,.12)}
+.enemy{border-left:3px solid #ef4444;background:rgba(239,68,68,.12)}
+.bar{height:7px;background:rgba(255,255,255,.1);border-radius:4px;overflow:hidden;margin-top:3px}
+.bar>div{height:100%;background:linear-gradient(90deg,#667eea,#4ade80)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.actbtn{width:100%;text-align:left;margin:4px 0;padding:9px;background:#1e293b}
+.actbtn:hover:not(:disabled){background:#283549}
+.actbtn small{display:block;opacity:.65;font-size:10px;margin-top:2px}
+.buy{background:rgba(255,255,255,.03);border-radius:6px;padding:8px;margin:6px 0}
+.buy .hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:6px}
+.buy .hd b{color:#a5b4fc}
+.buy .hd small{opacity:.6;font-size:10px;display:block}
+.buy .ctrls{display:flex;gap:5px;align-items:center}
+.buy input{width:54px;padding:5px;background:#0f172a;border:1px solid #334155;color:#e5e7eb;border-radius:4px;font-size:12px;text-align:center}
+.buy button{padding:5px 8px;font-size:11px}
+.buy .bmax{background:#1e293b}
+.stance{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px}
+.stance button{flex:1;min-width:64px;background:#1e293b;font-size:10px}
+.stance button.on{background:linear-gradient(135deg,#10b981,#059669)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
+.box{background:#161c2e;border:2px solid #667eea;border-radius:12px;padding:36px;max-width:560px;width:100%;text-align:center;max-height:90vh;overflow-y:auto}
+.box h1{color:#4ade80;font-size:26px;margin-bottom:12px}
+.box p{font-size:13px;margin:10px 0;color:#cbd5e1}
+.box .grid2{margin-top:22px}
+.hidden{display:none!important}
+canvas#spark{width:100%;height:60px;background:rgba(0,0,0,.25);border-radius:5px;margin-top:6px}
+.rank{display:flex;align-items:center;gap:8px;font-size:11px;padding:5px 7px;margin:3px 0;border-radius:5px;background:rgba(255,255,255,.03)}
+.rank .sw{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+.rank .nm{flex:1}
+.rank.me{background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.4)}
+.tag{display:inline-block;font-size:9px;padding:1px 5px;border-radius:3px;background:#334155;margin-left:4px}
+
+/* ---------- Mobile / touch layout ---------- */
+@media (max-width:820px){
+  #topbar{padding-top:env(safe-area-inset-top);height:calc(46px + env(safe-area-inset-top))}
+  #main{top:calc(46px + env(safe-area-inset-top))}
+  #topbar button,#topbar .ctrl button{padding:8px 11px}
+  #mini{bottom:64px;right:8px}
+  #side{
+    position:fixed;left:0;right:0;bottom:0;top:auto;width:auto;
+    height:74vh;max-height:74vh;
+    border-left:none;border-top:2px solid #2a3550;
+    border-radius:16px 16px 0 0;
+    z-index:26;
+    transform:translateY(calc(100% - 54px - env(safe-area-inset-bottom)));
+    transition:transform .28s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 -10px 34px rgba(0,0,0,.55);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  #side.open{transform:translateY(0)}
+  #sheetHandle{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    height:54px;flex:0 0 auto;cursor:pointer;position:relative;
+    font-size:12px;color:#a5b4fc;font-weight:600;
+  }
+  #sheetHandle::before{content:"";position:absolute;top:8px;left:50%;transform:translateX(-50%);width:42px;height:5px;border-radius:3px;background:rgba(255,255,255,.28)}
+  #sheetHandle .chev{transition:transform .28s}
+  #side.open #sheetHandle .chev{transform:rotate(180deg)}
+  #tabs button{padding:10px 4px;min-width:56px}
+  #tabContent{padding-bottom:24px}
+  button:hover:not(:disabled){transform:none;box-shadow:none}
+}
+@media (max-width:400px){
+  #topbar .stat{padding:5px 6px;font-size:11px}
+}
+</style>
+</head>
+<body>
+
+<div id="menu" class="overlay">
+<div class="box">
+<h1>⚔️ Grand Strategy — Legend Edition</h1>
+<p>Build a civilization, command armies, forge alliances, and watch a living world evolve across decades. Optimized to run smooth even at 10× speed.</p>
+<div class="grid2">
+<button onclick="Game.askPlayerName('player')">👑 Lead Your Empire</button>
+<button onclick="Game.start('random')">🎲 Join as Random Nation</button>
+</div>
+<div class="grid2" style="margin-top:8px">
+<button onclick="Game.load()" id="loadBtn" style="display:none">📂 Continue Saved Game</button>
+<button onclick="PWA.install()" id="installBtn" style="display:none">📲 Install App</button>
+</div>
+<p id="iosHint" style="display:none;font-size:11px;opacity:.65;margin-top:14px">📲 To install on iPhone/iPad: tap the <b>Share</b> button ⬆️ in Safari, then <b>“Add to Home Screen”</b>.</p>
+</div>
+</div>
+
+<div id="nameModal" class="overlay hidden">
+<div class="box">
+<h1>👑 Choose Your Nation</h1>
+<p>Give your empire a name:</p>
+<input type="text" id="playerName" placeholder="Enter your nation's name..." style="width:100%;padding:10px;margin:15px 0;background:#0f172a;border:2px solid #667eea;color:#e5e7eb;border-radius:5px;font-size:16px;">
+<div class="grid2">
+<button onclick="Game.cancelNameModal()">Cancel</button>
+<button onclick="Game.confirmName()">Begin</button>
+</div>
+</div>
+</div>
+
+<div id="confirm" class="overlay hidden">
+<div class="box" style="border-color:#ef4444">
+<h1 style="color:#f87171">⚠️ New World?</h1>
+<p>This permanently replaces your current game with a freshly generated world.</p>
+<div class="grid2">
+<button onclick="UI.closeConfirm()">Cancel</button>
+<button onclick="Game.newWorld()" style="background:linear-gradient(135deg,#ef4444,#dc2626)">Generate</button>
+</div>
+</div>
+</div>
+
+<div id="topbar" class="hidden">
+<button onclick="UI.askNewWorld()">🌍 New</button>
+<button onclick="Game.save()">💾 Save</button>
+<div class="ctrl"><span>🗺️ View</span>
+<button onclick="State.viewMode='country';State.mapDirty=true" id="viewCountry" style="background:#1e293b">🏴</button>
+<button onclick="State.viewMode='landscape';State.mapDirty=true" id="viewLand" style="background:#1e293b">🌲</button>
+<button onclick="State.viewMode='geography';State.mapDirty=true" id="viewGeo" style="background:#1e293b">⛰️</button>
+</div>
+<div class="ctrl"><span>⏩ Speed</span><button onclick="Game.changeSpeed(-1)">−</button><span id="spd">1.0×</span><button onclick="Game.changeSpeed(1)">+</button></div>
+<div class="ctrl"><span>🔍 Zoom</span><button onclick="Camera.zoomBy(0.8)">−</button><span id="zm">100%</span><button onclick="Camera.zoomBy(1.25)">+</button></div>
+<button onclick="Game.advanceYears(5)">⏭️ +5 Years</button>
+<button id="pauseBtn" onclick="Game.togglePause()">⏸️ Pause</button>
+<div style="flex:1"></div>
+<div class="stat">📅 Year <b id="yr">0</b></div>
+<div class="stat">📍 <b id="terr">0</b></div>
+<div class="stat">💰 <b id="mny">0</b></div>
+<div class="stat">🎖️ <b id="mil">0</b></div>
+<div class="stat">🏆 Rank <b id="rnk">-</b></div>
+</div>
+
+<div id="main" class="hidden">
+<div id="mapWrap">
+<canvas id="view"></canvas>
+<canvas id="mini" width="180" height="120"></canvas>
+<div id="hover"></div>
+</div>
+<div id="side">
+<div id="sheetHandle" onclick="UI.toggleSheet()"><span>⚙️ Manage Empire</span><span class="chev">▲</span></div>
+<div id="tabs">
+<button data-tab="overview" class="active" onclick="UI.tab('overview')">Overview</button>
+<button data-tab="economy" onclick="UI.tab('economy')">Economy</button>
+<button data-tab="military" onclick="UI.tab('military')">Military</button>
+<button data-tab="build" onclick="UI.tab('build')">Build</button>
+<button data-tab="diplo" onclick="UI.tab('diplo')">Diplomacy</button>
+<button data-tab="stats" onclick="UI.tab('stats')">Stats</button>
+<button data-tab="news" onclick="UI.tab('news')">News</button>
+</div>
+<div id="tabContent"></div>
+</div>
+</div>
+
+<script>
+"use strict";
+
+// ---------- Deterministic RNG (so saves only need a seed for terrain) ----------
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+// ---------- Config ----------
+const COLS=110, ROWS=70, CELL=10;        // 7700 cells, offscreen 1100x700
+const MAP_W=COLS*CELL, MAP_H=ROWS*CELL;
+const YEAR_TURNS=12;                      // turns per in-game year
+const SAVE_KEY="gsLegendV1";
+const PERSONALITIES=["aggressive","trader","expansionist","militarist","peaceful","balanced"];
+const NAMES=["Alberia","Brasilia","Cascadia","Dalmatia","Estonia","Franconia","Gallica","Helvetia",
+"Iberia","Jutland","Kaldinord","Latinia","Moldavia","Nordland","Ostara","Pictland","Quantria","Rhineland",
+"Scania","Thrace","Umbria","Vandalusia","Westmarch","Xanadu","Yggdrasilia","Zephyria",
+"Akkadia","Bactria","Caucasia","Dacia","Epirus","Frisia","Galatia","Hellenia"];
+const TERRAIN_TYPES={mountain:"⛰️",forest:"🌲",plains:"🌾",desert:"🏜️",tundra:"❄️",coast:"🏖️"};
+const BUILDINGS={
+cities:{icon:"🏢",label:"City",cost:1500,desc:"+80 income/turn"},
+factories:{icon:"🏭",label:"Factory",cost:2000,desc:"+100 resources/turn"},
+mines:{icon:"⛏️",label:"Mine",cost:1800,desc:"+120 income/turn"},
+camps:{icon:"🎖️",label:"Military Camp",cost:2500,desc:"+5 military/turn"},
+ports:{icon:"🚢",label:"Port",cost:3000,desc:"enables naval expansion"},
+airports:{icon:"✈️",label:"Airport",cost:3500,desc:"+air power, trade"},
+labs:{icon:"🔬",label:"Research Lab",cost:2800,desc:"+1 tech/turn"}
+};
+const UNITS={
+infantry:{icon:"👮",label:"Infantry",cost:800,power:10},
+tanks:{icon:"🚜",label:"Tanks",cost:1200,power:25},
+ships:{icon:"🚢",label:"Ships",cost:1500,power:15},
+aircraft:{icon:"✈️",label:"Aircraft",cost:2000,power:20}
+};
+const STANCES={
+defensive:{label:"🛡️ Defensive",desc:"Fortify, rarely attack, focus economy"},
+balanced:{label:"⚖️ Balanced",desc:"Mix of growth and force"},
+offensive:{label:"⚔️ Offensive",desc:"Seek wars, conquer neighbors"},
+naval:{label:"🌊 Naval",desc:"Prioritize ports, ships, overseas colonies"}
+};
+
+// ---------- World state ----------
+const State={
+seed:0, turn:0, paused:false,
+land:null,            // Uint8Array: 1 land, 0 water
+terrain:null,         // Uint8Array: terrain type for view modes
+owner:null,           // Int16Array: -1 unowned, else countryId
+pop:null,             // Uint16Array population per cell
+countries:[],
+news:[],
+mapDirty:true,
+viewMode:"country"    // "country", "landscape", or "geography"
+};
+let PLAYER=0;
+
+// ---------- Helpers ----------
+const idx=(x,y)=>y*COLS+x;
+const clamp=(v,a,b)=>v<a?a:v>b?b:v;
+function rint(rng,a,b){return Math.floor(rng()*(b-a+1))+a;}
+function news(t,cls){State.news.unshift({y:(State.turn/YEAR_TURNS).toFixed(1),t,cls:cls||""});if(State.news.length>250)State.news.pop();if(UI.current==="news")UI.renderNews();}
+
+// ---------- World generation ----------
+function genWorld(seed){
+State.seed=seed; State.turn=0; State.news=[]; State.countries=[];
+const rng=mulberry32(seed);
+State.land=new Uint8Array(COLS*ROWS);
+State.terrain=new Uint8Array(COLS*ROWS);
+State.owner=new Int16Array(COLS*ROWS).fill(-1);
+State.pop=new Uint16Array(COLS*ROWS);
+
+// continents
+const conts=[]; const n=rint(rng,5,7);
+for(let i=0;i<n;i++)conts.push({x:rint(rng,14,COLS-14),y:rint(rng,10,ROWS-10),r:rint(rng,9,16)});
+for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+let land=false;let terrain=0;
+for(const c of conts){const dx=x-c.x,dy=y-c.y;const wob=(Math.sin(x*.45)+Math.cos(y*.45))*1.6;const d=Math.sqrt(dx*dx+dy*dy);if(d<c.r+wob){land=true;const t=(d/c.r);if(t<0.3)terrain=0;else if(y<ROWS*0.15)terrain=4;else if(y>ROWS*0.85)terrain=4;else if(t<0.6)terrain=1;else terrain=2;break;}}
+if(land){State.land[idx(x,y)]=1;State.terrain[idx(x,y)]=terrain;State.pop[idx(x,y)]=rint(rng,80,420);}
+else{const d=Math.min(...conts.map(c=>Math.hypot(x-c.x,y-c.y)));State.terrain[idx(x,y)]=d<3?5:0;}
+}
+
+// countries
+const count=12;
+for(let i=0;i<count;i++){
+State.countries.push({
+id:i,name:i===PLAYER?"Your Nation":NAMES[i%NAMES.length],
+isPlayer:i===PLAYER,
+money:8000,gdp:1000,population:5e6,tax:0.25,tech:0,
+military:200,cells:[],capital:-1,
+alliances:[],wars:[],
+buildings:Object.fromEntries(Object.keys(BUILDINGS).map(k=>[k,0])),
+units:Object.fromEntries(Object.keys(UNITS).map(k=>[k,0])),
+personality:i===PLAYER?"balanced":PERSONALITIES[rint(rng,0,PERSONALITIES.length-1)],
+stance:i===PLAYER?"balanced":["defensive","balanced","offensive","naval"][rint(rng,0,3)],
+color:`hsl(${(i*131+40)%360} 65% 55%)`,
+history:[]
+});
+}
+
+// seed each country in its own continent region, grow a connected blob
+for(let i=0;i<count;i++){
+const cont=conts[i%conts.length];
+// find a land cell near continent center
+let sx=-1,sy=-1,best=1e9;
+for(let t=0;t<400;t++){
+const x=clamp(Math.round(cont.x+(rng()-.5)*cont.r),0,COLS-1);
+const y=clamp(Math.round(cont.y+(rng()-.5)*cont.r),0,ROWS-1);
+if(State.land[idx(x,y)]&&State.owner[idx(x,y)]<0){const d=Math.hypot(x-cont.x,y-cont.y);if(d<best){best=d;sx=x;sy=y;}}
+}
+if(sx<0)continue;
+growBlob(State.countries[i],sx,sy,rint(rng,10,18));
+State.countries[i].capital=idx(sx,sy);
+}
+State.mapDirty=true;
+news("🌍 A new world of "+n+" continents has emerged.","good");
+}
+
+function growBlob(country,sx,sy,size){
+const q=[[sx,sy]]; claim(country,idx(sx,sy));
+while(q.length&&country.cells.length<size){
+const [x,y]=q.shift();
+for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){
+const nx=x+dx,ny=y+dy;
+if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;
+const id=idx(nx,ny);
+if(State.land[id]&&State.owner[id]<0){claim(country,id);q.push([nx,ny]);if(country.cells.length>=size)break;}
+}
+}
+}
+function claim(country,id){State.owner[id]=country.id;country.cells.push(id);State.mapDirty=true;}
+function unclaim(country,id){const i=country.cells.indexOf(id);if(i>=0)country.cells.splice(i,1);State.owner[id]=-1;State.mapDirty=true;}
+
+// ---------- Country calculations ----------
+function milPower(c){
+let u=0;for(const k in UNITS)u+=c.units[k]*UNITS[k].power;
+return Math.floor(c.military+u+c.buildings.camps*5+c.buildings.cities*2);
+}
+function income(c){return Math.floor(100+c.cells.length*14+c.buildings.cities*80+c.buildings.mines*120+c.buildings.airports*40);}
+function resourceGen(c){return c.buildings.factories*100;}
+function rankOf(c){const s=[...State.countries].sort((a,b)=>score(b)-score(a));return s.indexOf(c)+1;}
+function score(c){return c.cells.length*100+milPower(c)+Math.floor(c.money/100);}
+
+// ---------- Frontier / expansion ----------
+function landFrontier(c){
+const set=new Set(),out=[];
+for(const id of c.cells){const x=id%COLS,y=(id/COLS)|0;
+for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;const nid=idx(nx,ny);if(State.land[nid]&&State.owner[nid]<0&&!set.has(nid)){set.add(nid);out.push(nid);}}}
+return out;
+}
+function waterFrontier(c){
+const set=new Set(),out=[];
+for(const id of c.cells){const x=id%COLS,y=(id/COLS)|0;
+for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[2,0],[-2,0],[0,2],[0,-2]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;const nid=idx(nx,ny);if(!State.land[nid]&&State.owner[nid]<0&&!set.has(nid)){set.add(nid);out.push(nid);}}}
+return out;
+}
+function enemyBorder(c,enemy){
+const out=[];
+for(const id of enemy.cells){const x=id%COLS,y=(id/COLS)|0;
+for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx<0||ny<0||nx>=COLS||ny>=ROWS)continue;if(State.owner[idx(nx,ny)]===c.id){out.push(id);break;}}}
+return out;
+}
+
+// ---------- Actions (player + AI share these) ----------
+function expandLand(c){const f=landFrontier(c);if(!f.length)return false;claim(c,f[(Math.random()*f.length)|0]);return true;}
+function expandWater(c){
+if(c.buildings.ports<1||c.units.ships<1)return false;
+const f=waterFrontier(c);if(!f.length)return false;
+claim(c,f[(Math.random()*f.length)|0]);c.units.ships--;return true;
+}
+function build(c,type){if(c.money<BUILDINGS[type].cost)return false;c.money-=BUILDINGS[type].cost;c.buildings[type]++;return true;}
+function train(c,type){if(c.money<UNITS[type].cost)return false;c.money-=UNITS[type].cost;c.units[type]++;c.military+=UNITS[type].power;return true;}
+function ally(a,b){if(a.alliances.includes(b.id))return false;a.alliances.push(b.id);b.alliances.push(a.id);
+a.wars=a.wars.filter(w=>w!==b.id);b.wars=b.wars.filter(w=>w!==a.id);return true;}
+function declareWar(a,b){if(a.wars.includes(b.id))return false;a.wars.push(b.id);b.wars.push(a.id);a.alliances=a.alliances.filter(x=>x!==b.id);b.alliances=b.alliances.filter(x=>x!==a.id);return true;}
+function makePeace(a,b){a.wars=a.wars.filter(w=>w!==b.id);b.wars=b.wars.filter(w=>w!==a.id);}
+
+function battle(att,def){
+const ap=milPower(att),dp=milPower(def);
+const chance=ap/(ap+dp+1);
+const border=enemyBorder(att,def);
+let taken=0;
+if(border.length&&Math.random()<chance){
+const n=Math.max(1,Math.min(border.length,Math.round(border.length*chance*0.5)));
+for(let i=0;i<n;i++){const id=border[(Math.random()*border.length)|0];if(State.owner[id]===def.id){unclaim(def,id);claim(att,id);taken++;}}
+}
+att.military=Math.max(0,att.military-Math.floor(Math.random()*40+10));
+def.military=Math.max(0,def.military-Math.floor(Math.random()*60+20));
+// total defeat -> defender may collapse / secede
+if(def.cells.length===0&&!def._dead){def._dead=true;news("💀 "+def.name+" has been wiped off the map by "+att.name+"!","war");}
+return taken;
+}
+
+// ---------- Simulation tick ----------
+function simTick(){
+const changedBefore=State.mapDirty;
+for(const c of State.countries){
+if(c.cells.length===0&&c._dead)continue;
+c.money+=income(c);
+c.population+=Math.floor(c.population*0.001*(1+c.buildings.cities*0.02));
+c.tech+=c.buildings.labs*1;
+c.military+=c.buildings.camps;
+c.gdp=income(c)*10+c.cells.length*30;
+c.tax=clamp(c.tax,0,0.6);
+if(!c.isPlayer)aiAct(c);
+}
+// player auto-expand
+if(autoExpand)expandLand(State.countries[PLAYER]);
+// record history each year
+if(State.turn%YEAR_TURNS===0){
+for(const c of State.countries){c.history.push(c.cells.length);if(c.history.length>120)c.history.shift();}
+}
+State.turn++;
+}
+
+function aiAct(c){
+const aggr=c.personality==="aggressive"||c.stance==="offensive";
+const navy=c.personality==="trader"||c.stance==="naval";
+const mili=c.personality==="militarist";
+// expand
+if(Math.random()<(c.stance==="offensive"?0.45:0.3))expandLand(c);
+if(navy&&Math.random()<0.15)expandWater(c);
+// build
+if(c.money>2500&&Math.random()<0.4){
+let pick;
+if(navy)pick=Math.random()<0.5?"ports":"factories";
+else if(mili||aggr)pick=Math.random()<0.5?"camps":"cities";
+else pick=["cities","factories","mines","labs","airports"][(Math.random()*5)|0];
+build(c,pick);
+}
+// train
+if(c.money>1500&&Math.random()<(mili||aggr?0.5:0.25)){
+const pick=navy?(Math.random()<0.6?"ships":"aircraft"):["infantry","tanks","aircraft"][(Math.random()*3)|0];
+train(c,pick);
+}
+// diplomacy
+if(Math.random()<0.05){
+const other=State.countries[(Math.random()*State.countries.length)|0];
+if(other.id!==c.id&&!other._dead){
+if((aggr||mili)&&!c.alliances.includes(other.id)&&Math.random()<0.6){
+if(declareWar(c,other))news("⚔️ "+c.name+" declared war on "+other.name+".","war");
+}else if(!c.wars.includes(other.id)){
+if(ally(c,other))news("🤝 "+c.name+" allied with "+other.name+".","peace");
+}
+}
+}
+// wage active wars
+for(const wid of [...c.wars]){
+const e=State.countries[wid];if(!e||e._dead){makePeace(c,e||{wars:[],id:wid});continue;}
+if(Math.random()<0.4){const t=battle(c,e);if(t>0&&Math.random()<0.25)news("⚔️ "+c.name+" seized "+t+" region(s) from "+e.name+".","war");}
+if(Math.random()<0.05){makePeace(c,e);news("🕊️ "+c.name+" and "+e.name+" signed peace.","peace");}
+}
+// revolution
+if(Math.random()<0.006){
+c.military=Math.max(0,c.military-100);
+news("🔥 Revolution shakes "+c.name+"!","rev");
+// secession: a border cell breaks away into a brand new country
+if(c.cells.length>14&&State.countries.length<24&&Math.random()<0.5)secede(c);
+}
+}
+
+function secede(c){
+const id=c.cells[(Math.random()*c.cells.length)|0];
+const nid=State.countries.length;
+const nc={id:nid,name:"Free "+c.name.split(" ")[0],isPlayer:false,money:3000,gdp:300,population:1e6,tax:.25,tech:c.tech,
+military:80,cells:[],capital:-1,alliances:[],wars:[],
+buildings:Object.fromEntries(Object.keys(BUILDINGS).map(k=>[k,0])),
+units:Object.fromEntries(Object.keys(UNITS).map(k=>[k,0])),
+personality:PERSONALITIES[(Math.random()*PERSONALITIES.length)|0],
+stance:"defensive",color:`hsl(${(nid*131+40)%360} 70% 60%)`,history:[]};
+State.countries.push(nc);
+// transfer a blob of cells around id
+const q=[id];const moved=new Set();
+while(q.length&&nc.cells.length<6){const cur=q.shift();if(State.owner[cur]!==c.id||moved.has(cur))continue;moved.add(cur);unclaim(c,cur);claim(nc,cur);const x=cur%COLS,y=(cur/COLS)|0;for(const[dx,dy]of[[1,0],[-1,0],[0,1],[0,-1]]){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<COLS&&ny<ROWS)q.push(idx(nx,ny));}}
+nc.capital=nc.cells[0]??-1;
+news("🏴 A new nation, "+nc.name+", has seceded from "+c.name+"!","rev");
+}
+
+// ---------- Rendering (offscreen cache + cheap blit) ----------
+const Map_=(()=>{
+const off=document.createElement("canvas");off.width=MAP_W;off.height=MAP_H;
+const octx=off.getContext("2d");
+const terrainColors={0:"#8b7355",1:"#2d5016",2:"#9acd32",4:"#e6f3ff",5:"#4a7c9e"};
+function rebuild(){
+octx.fillStyle="#13315c";octx.fillRect(0,0,MAP_W,MAP_H);
+const vm=State.viewMode;
+for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+const id=idx(x,y);
+if(vm==="country"){
+if(!State.land[id]){octx.fillStyle="#1d4ed8";}
+else{const o=State.owner[id];octx.fillStyle=o<0?"#5b6472":State.countries[o].color;}
+}else if(vm==="landscape"){
+if(!State.land[id]){octx.fillStyle="#1d4ed8";}
+else{const t=State.terrain[id];octx.fillStyle=terrainColors[t]||"#5b6472";}
+}else if(vm==="geography"){
+if(!State.land[id]){octx.fillStyle="#1d4ed8";}
+else{const t=State.terrain[id];let c="#2d5016";if(t===1)c="#228b22";else if(t===2)c="#daa520";else if(t===0)c="#8b7355";else if(t===4)c="#b0e0e6";else if(t===5)c="#4a7c9e";octx.fillStyle=c;}
+}
+octx.fillRect(x*CELL,y*CELL,CELL,CELL);
+}
+// borders between different owners (and coastline) - only in country view
+if(vm==="country"){
+octx.fillStyle="rgba(0,0,0,.45)";
+for(let y=0;y<ROWS;y++)for(let x=0;x<COLS;x++){
+const id=idx(x,y),o=State.owner[id];
+if(x+1<COLS&&State.owner[idx(x+1,y)]!==o)octx.fillRect((x+1)*CELL-1,y*CELL,1,CELL);
+if(y+1<ROWS&&State.owner[idx(x,y+1)]!==o)octx.fillRect(x*CELL,(y+1)*CELL-1,CELL,1);
+}
+// highlight player's land with subtle glow border
+const p=State.countries[PLAYER];
+octx.strokeStyle="rgba(255,255,255,.85)";octx.lineWidth=2;
+for(const cid of p.cells){const x=cid%COLS,y=(cid/COLS)|0;
+if(x+1>=COLS||State.owner[idx(x+1,y)]!==PLAYER)octx.strokeRect(x*CELL+1,y*CELL+1,CELL-2,CELL-2);
+}
+}
+State.mapDirty=false;
+Mini.draw();
+UI.updateViewButtons();
+}
+return {off,rebuild};
+})();
+
+const Mini=(()=>{
+const mc=document.getElementById("mini");const mx=mc.getContext("2d");
+function draw(){
+mx.clearRect(0,0,mc.width,mc.height);
+mx.drawImage(Map_.off,0,0,mc.width,mc.height);
+// viewport rect
+const vw=document.getElementById("view");
+const sx=mc.width/MAP_W,sy=mc.height/MAP_H;
+mx.strokeStyle="#fff";mx.lineWidth=1;
+mx.strokeRect(Camera.x*sx,Camera.y*sy,(vw.width/Camera.zoom)*sx,(vw.height/Camera.zoom)*sy);
+}
+return {draw};
+})();
+
+const Camera={
+x:0,y:0,zoom:1,needs:true,
+clamp(){const vw=document.getElementById("view");const maxX=Math.max(0,MAP_W-vw.width/this.zoom);const maxY=Math.max(0,MAP_H-vw.height/this.zoom);this.x=clamp(this.x,0,maxX);this.y=clamp(this.y,0,maxY);},
+zoomBy(f){const vw=document.getElementById("view");const cx=this.x+vw.width/this.zoom/2,cy=this.y+vw.height/this.zoom/2;this.zoom=clamp(this.zoom*f,0.5,6);this.x=cx-vw.width/this.zoom/2;this.y=cy-vw.height/this.zoom/2;this.clamp();this.needs=true;document.getElementById("zm").textContent=Math.round(this.zoom*100)+"%";},
+// zoom keeping a given screen point (client coords) anchored — used by pinch + wheel
+zoomAtClient(f,clientX,clientY){const vw=document.getElementById("view");const r=vw.getBoundingClientRect();const px=clientX-r.left,py=clientY-r.top;const wx=this.x+px/this.zoom,wy=this.y+py/this.zoom;this.zoom=clamp(this.zoom*f,0.5,6);this.x=wx-px/this.zoom;this.y=wy-py/this.zoom;this.clamp();this.needs=true;document.getElementById("zm").textContent=Math.round(this.zoom*100)+"%";}
+};
+
+function resize(){const vw=document.getElementById("view");const r=vw.parentElement.getBoundingClientRect();vw.width=r.width;vw.height=r.height;Camera.clamp();Camera.needs=true;}
+window.addEventListener("resize",resize);
+window.addEventListener("orientationchange",()=>setTimeout(resize,250));
+
+function renderFrame(){
+const need=State.mapDirty||Camera.needs;
+if(State.mapDirty)Map_.rebuild();
+if(need){
+const vw=document.getElementById("view");const v=vw.getContext("2d");
+v.imageSmoothingEnabled=false;
+v.fillStyle="#070b16";v.fillRect(0,0,vw.width,vw.height);
+v.save();v.scale(Camera.zoom,Camera.zoom);v.translate(-Camera.x,-Camera.y);
+v.drawImage(Map_.off,0,0);
+// labels: only on-screen, constant screen size
+v.fillStyle="#fff";v.textAlign="center";v.textBaseline="middle";
+const fpx=Math.max(9,12/Camera.zoom);v.font="bold "+fpx+"px Arial";
+v.lineWidth=3/Camera.zoom;v.strokeStyle="rgba(0,0,0,.8)";
+for(const c of State.countries){
+if(c.cells.length<2||c._dead)continue;
+let mx=0,my=0,k=Math.min(c.cells.length,12);
+for(let i=0;i<k;i++){const id=c.cells[(i*c.cells.length/k)|0];mx+=id%COLS;my+=(id/COLS)|0;}
+mx=(mx/k+.5)*CELL;my=(my/k+.5)*CELL;
+const name=c.name+(c.isPlayer?" ★":"");
+v.strokeText(name,mx,my);v.fillText(name,mx,my);
+}
+v.restore();
+Mini.draw();
+Camera.needs=false;
+}
+requestAnimationFrame(renderFrame);
+}
+
+// ---------- Tooltip helper (shared by mouse hover + touch tap) ----------
+function showTooltipAtClient(clientX,clientY){
+const vw=document.getElementById("view");const hov=document.getElementById("hover");
+const r=vw.getBoundingClientRect();
+const wx=Math.floor((Camera.x+(clientX-r.left)/Camera.zoom)/CELL);
+const wy=Math.floor((Camera.y+(clientY-r.top)/Camera.zoom)/CELL);
+if(wx<0||wy<0||wx>=COLS||wy>=ROWS){hov.style.display="none";return;}
+const id=idx(wx,wy),o=State.owner[id];
+if(!State.land[id]){hov.style.display="none";return;}
+const owner=o<0?"Unclaimed":State.countries[o].name;
+let lx=clientX-r.left+14,ly=clientY-r.top+14;
+lx=Math.min(lx,vw.width-150);
+hov.style.display="block";hov.style.left=lx+"px";hov.style.top=ly+"px";
+hov.innerHTML=`<b>${owner}</b><br>Pop: ${State.pop[id]}${o>=0?"<br>Stance: "+STANCES[State.countries[o].stance].label:""}`;
+}
+
+// ---------- Input: pan / hover / minimap (mouse) ----------
+(function(){
+const vw=document.getElementById("view");
+let drag=false,lx=0,ly=0,moved=0;
+vw.addEventListener("mousedown",e=>{drag=true;lx=e.clientX;ly=e.clientY;moved=0;});
+window.addEventListener("mouseup",()=>drag=false);
+window.addEventListener("mousemove",e=>{
+if(drag){const dx=e.clientX-lx,dy=e.clientY-ly;moved+=Math.abs(dx)+Math.abs(dy);Camera.x-=dx/Camera.zoom;Camera.y-=dy/Camera.zoom;lx=e.clientX;ly=e.clientY;Camera.clamp();Camera.needs=true;}
+});
+vw.addEventListener("wheel",e=>{e.preventDefault();Camera.zoomAtClient(e.deltaY>0?0.9:1.1,e.clientX,e.clientY);},{passive:false});
+// hover tooltip
+vw.addEventListener("mousemove",e=>{showTooltipAtClient(e.clientX,e.clientY);});
+vw.addEventListener("mouseleave",()=>document.getElementById("hover").style.display="none");
+// minimap click to jump
+const mc=document.getElementById("mini");
+mc.addEventListener("mousedown",e=>{const r=mc.getBoundingClientRect();const fx=(e.clientX-r.left)/mc.width,fy=(e.clientY-r.top)/mc.height;Camera.x=fx*MAP_W-vw.width/Camera.zoom/2;Camera.y=fy*MAP_H-vw.height/Camera.zoom/2;Camera.clamp();Camera.needs=true;e.stopPropagation();});
+})();
+
+// ---------- Input: touch (pan / pinch-zoom / tap) ----------
+(function(){
+const vw=document.getElementById("view");
+let mode=0;            // 0 idle, 1 pan, 2 pinch
+let lx=0,ly=0,moved=0,startT=0;
+let pinchDist=0,pinchMidX=0,pinchMidY=0;
+function dist(t0,t1){const dx=t0.clientX-t1.clientX,dy=t0.clientY-t1.clientY;return Math.hypot(dx,dy);}
+vw.addEventListener("touchstart",e=>{
+if(e.touches.length===1){mode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;moved=0;startT=Date.now();}
+else if(e.touches.length>=2){mode=2;pinchDist=dist(e.touches[0],e.touches[1]);pinchMidX=(e.touches[0].clientX+e.touches[1].clientX)/2;pinchMidY=(e.touches[0].clientY+e.touches[1].clientY)/2;}
+},{passive:false});
+vw.addEventListener("touchmove",e=>{
+e.preventDefault();
+if(mode===1&&e.touches.length===1){
+const dx=e.touches[0].clientX-lx,dy=e.touches[0].clientY-ly;
+moved+=Math.abs(dx)+Math.abs(dy);
+Camera.x-=dx/Camera.zoom;Camera.y-=dy/Camera.zoom;
+lx=e.touches[0].clientX;ly=e.touches[0].clientY;Camera.clamp();Camera.needs=true;
+}else if(mode===2&&e.touches.length>=2){
+const nd=dist(e.touches[0],e.touches[1]);
+const mx=(e.touches[0].clientX+e.touches[1].clientX)/2,my=(e.touches[0].clientY+e.touches[1].clientY)/2;
+if(pinchDist>0)Camera.zoomAtClient(nd/pinchDist,mx,my);
+pinchDist=nd;pinchMidX=mx;pinchMidY=my;
+}
+},{passive:false});
+vw.addEventListener("touchend",e=>{
+if(mode===1&&moved<10&&Date.now()-startT<300){showTooltipAtClient(lx,ly);setTimeout(()=>{document.getElementById("hover").style.display="none";},2600);}
+if(e.touches.length===0)mode=0;
+else if(e.touches.length===1){mode=1;lx=e.touches[0].clientX;ly=e.touches[0].clientY;moved=99;}
+},{passive:false});
+// minimap jump (touch)
+const mc=document.getElementById("mini");
+mc.addEventListener("touchstart",e=>{e.preventDefault();e.stopPropagation();const t=e.touches[0];const r=mc.getBoundingClientRect();const fx=(t.clientX-r.left)/mc.width,fy=(t.clientY-r.top)/mc.height;Camera.x=fx*MAP_W-vw.width/Camera.zoom/2;Camera.y=fy*MAP_H-vw.height/Camera.zoom/2;Camera.clamp();Camera.needs=true;},{passive:false});
+})();
+
+// ---------- Player actions ----------
+let autoExpand=false;
+const Actions={
+expandLand(){const p=State.countries[PLAYER];if(p.money<1000){news("❌ Need 1000💰 to expand.","");return;}if(expandLand(p)){p.money-=1000;news("📍 Expanded onto new land.","good");}else news("❌ No adjacent unclaimed land.","");UI.refresh();},
+expandWater(){const p=State.countries[PLAYER];if(p.buildings.ports<1){news("❌ Build a Port first.","");return;}if(p.units.ships<1){news("❌ Need Ships (train them).","");return;}if(p.money<2500){news("❌ Need 2500💰 for a colony.","");return;}if(expandWater(p)){p.money-=2500;news("🌊 Established an overseas colony!","good");}else news("❌ No reachable open water.","");UI.refresh();},
+build(type){const p=State.countries[PLAYER];if(build(p,type)){news("✅ Built "+BUILDINGS[type].icon+" "+BUILDINGS[type].label+".","good");}else news("❌ Not enough money.","");UI.refresh();},
+train(type){const p=State.countries[PLAYER];if(train(p,type)){news("✅ Trained "+UNITS[type].icon+" "+UNITS[type].label+".","good");}else news("❌ Not enough money.","");UI.refresh();},
+qtys:{},
+setQty(key,v){const n=parseInt(v,10);this.qtys[key]=isNaN(n)?1:clamp(n,1,9999);},
+qty(key){const el=document.getElementById("qty_"+key);if(el){const v=parseInt(el.value,10);if(!isNaN(v))return clamp(v,1,9999);}return this.qtys[key]||1;},
+buildN(type){const p=State.countries[PLAYER];const want=this.qty(type);let done=0;for(let i=0;i<want;i++){if(build(p,type))done++;else break;}if(done)news("✅ Built "+done+"× "+BUILDINGS[type].icon+" "+BUILDINGS[type].label+(done<want?" (ran out of money)":"")+".","good");else news("❌ Not enough money for "+BUILDINGS[type].label+".","");UI.refresh();},
+trainN(type){const p=State.countries[PLAYER];const want=this.qty(type);let done=0;for(let i=0;i<want;i++){if(train(p,type))done++;else break;}if(done)news("✅ Trained "+done+"× "+UNITS[type].icon+" "+UNITS[type].label+(done<want?" (ran out of money)":"")+".","good");else news("❌ Not enough money for "+UNITS[type].label+".","");UI.refresh();},
+buildMax(type){const p=State.countries[PLAYER];let done=0;while(build(p,type))done++;if(done)news("✅ Built "+done+"× "+BUILDINGS[type].icon+" "+BUILDINGS[type].label+" (max affordable).","good");else news("❌ Not enough money for "+BUILDINGS[type].label+".","");UI.refresh();},
+trainMax(type){const p=State.countries[PLAYER];let done=0;while(train(p,type))done++;if(done)news("✅ Trained "+done+"× "+UNITS[type].icon+" "+UNITS[type].label+" (max affordable).","good");else news("❌ Not enough money for "+UNITS[type].label+".","");UI.refresh();},
+expandLandN(){const p=State.countries[PLAYER];const want=this.qty("expand");let done=0;for(let i=0;i<want;i++){if(p.money<1000)break;if(expandLand(p)){p.money-=1000;done++;}else break;}if(done)news("📍 Expanded onto "+done+" new region(s)"+(done<want?" (no more land or money)":"")+".","good");else news("❌ Could not expand (need 1000💰 + adjacent land).","");UI.refresh();},
+setStance(s){State.countries[PLAYER].stance=s;news("📋 Doctrine set to "+STANCES[s].label+".","");UI.refresh();},
+setTax(v){State.countries[PLAYER].tax=v/100;UI.refresh();},
+attack(targetId){const p=State.countries[PLAYER];const e=State.countries[targetId];if(!e||e._dead){news("❌ Invalid target.","");return;}if(milPower(p)<80){news("❌ Build up military first (need 80+).","");return;}if(!p.wars.includes(e.id))declareWar(p,e);const border=enemyBorder(p,e);if(!border.length){news("⚠️ "+e.name+" shares no border — move troops via conquest first.","war");return;}const t=battle(p,e);news(t>0?("⚔️ Victory! Seized "+t+" region(s) from "+e.name+"."):("⚔️ Assault on "+e.name+" repelled."),"war");UI.refresh();},
+ally(targetId){const p=State.countries[PLAYER];const e=State.countries[targetId];if(ally(p,e))news("🤝 Allied with "+e.name+".","peace");else news("❌ Already allied.","");UI.refresh();},
+peace(targetId){const p=State.countries[PLAYER];const e=State.countries[targetId];makePeace(p,e);news("🕊️ Made peace with "+e.name+".","peace");UI.refresh();},
+toggleAuto(){autoExpand=!autoExpand;news(autoExpand?"🤖 Auto-expand ON.":"🤖 Auto-expand OFF.","");UI.refresh();}
+};
+
+// ---------- UI / Tabs ----------
+const UI={
+current:"overview",
+isMobile(){return window.matchMedia("(max-width:820px)").matches;},
+toggleSheet(){document.getElementById("side").classList.toggle("open");},
+openSheet(){document.getElementById("side").classList.add("open");},
+tab(name){this.current=name;document.querySelectorAll("#tabs button").forEach(b=>b.classList.toggle("active",b.dataset.tab===name));if(this.isMobile())this.openSheet();this.refresh();},
+refresh(){this.topbar();const a=document.activeElement;if(a&&a.id&&a.id.indexOf("qty_")===0)return;this["render_"+this.current]?.();},
+topbar(){const p=State.countries[PLAYER];
+document.getElementById("yr").textContent=(State.turn/YEAR_TURNS).toFixed(1);
+document.getElementById("terr").textContent=p.cells.length;
+document.getElementById("mny").textContent=Math.floor(p.money).toLocaleString();
+document.getElementById("mil").textContent=milPower(p);
+document.getElementById("rnk").textContent=rankOf(p)+"/"+State.countries.filter(c=>!c._dead).length;
+document.getElementById("spd").textContent=Game.speed.toFixed(1)+"×";
+},
+content(html){document.getElementById("tabContent").innerHTML=html;},
+render_overview(){const p=State.countries[PLAYER];
+this.content(`
+<div class="panel"><h3>👑 ${p.name} <span class="tag">${p.personality}</span></h3>
+<div class="row"><span>Doctrine</span><b>${STANCES[p.stance].label}</b></div>
+<div class="row"><span>Territories</span><b>${p.cells.length}</b></div>
+<div class="row"><span>World Rank</span><b>#${rankOf(p)}</b></div>
+<div class="row"><span>Population</span><b>${(p.population/1e6).toFixed(1)}M</b></div>
+<div class="row"><span>Tech Level</span><b>${p.tech}</b></div>
+</div>
+<div class="panel"><h3>⚡ Quick Actions</h3>
+<div class="buy"><div class="hd"><div><b>📍 Expand Onto Land</b><small>1000💰 each — claim adjacent regions</small></div></div>
+<div class="ctrls"><input type="number" id="qty_expand" min="1" max="9999" value="${Actions.qtys.expand||1}" oninput="Actions.setQty('expand',this.value)"><button onclick="Actions.expandLandN()">Expand</button><button class="bmax" onclick="Actions.expandLand()">+1</button></div></div>
+<button class="actbtn" onclick="Actions.expandWater()">🌊 Naval Colony <small>2500💰 — needs Port + Ship</small></button>
+<button class="actbtn" id="autoBtn" onclick="Actions.toggleAuto()" style="background:${autoExpand?'linear-gradient(135deg,#10b981,#059669)':'#1e293b'}">🤖 Auto-Expand: ${autoExpand?'ON':'OFF'} <small>grow automatically each turn</small></button>
+</div>
+<div class="panel"><h3>🎯 Achievements</h3><div id="ach"></div></div>
+`);
+this.renderAchievements();
+},
+render_economy(){const p=State.countries[PLAYER];
+this.content(`
+<div class="panel"><h3>💰 Treasury</h3>
+<div class="row"><span>Money</span><b>${Math.floor(p.money).toLocaleString()}💰</b></div>
+<div class="row"><span>Income / turn</span><b>+${income(p)}</b></div>
+<div class="row"><span>Resources / turn</span><b>+${resourceGen(p)}</b></div>
+<div class="row"><span>GDP</span><b>${Math.floor(p.gdp).toLocaleString()}</b></div>
+</div>
+<div class="panel"><h3>📊 Taxation</h3>
+<div class="row"><span>Tax rate</span><b>${Math.round(p.tax*100)}%</b></div>
+<input type="range" min="0" max="60" value="${Math.round(p.tax*100)}" style="width:100%" oninput="Actions.setTax(this.value)">
+<small style="opacity:.6">Higher taxes boost income but lower happiness in future updates.</small>
+</div>
+<div class="panel"><h3>🏙️ Economy Buildings</h3>
+${["cities","mines","factories","labs"].map(k=>`<div class="row"><span>${BUILDINGS[k].icon} ${BUILDINGS[k].label}</span><b>${p.buildings[k]}</b></div>`).join("")}
+</div>`);
+},
+render_military(){const p=State.countries[PLAYER];
+this.content(`
+<div class="panel"><h3>🎖️ Forces — Power ${milPower(p)}</h3>
+${Object.keys(UNITS).map(k=>`<div class="row"><span>${UNITS[k].icon} ${UNITS[k].label}</span><b>${p.units[k]}</b></div>`).join("")}
+<div class="row"><span>Base military</span><b>${Math.floor(p.military)}</b></div>
+</div>
+<div class="panel"><h3>📋 War Plan / Doctrine</h3>
+<small style="opacity:.7">${STANCES[p.stance].desc}</small>
+<div class="stance">${Object.keys(STANCES).map(s=>`<button class="${p.stance===s?'on':''}" onclick="Actions.setStance('${s}')">${STANCES[s].label}</button>`).join("")}</div>
+</div>
+<div class="panel"><h3>➕ Train Units <small style="opacity:.6;font-weight:normal">(set quantity, then Buy)</small></h3>
+${Object.keys(UNITS).map(k=>`<div class="buy"><div class="hd"><div><b>${UNITS[k].icon} ${UNITS[k].label}</b><small>${UNITS[k].cost}💰 each • power +${UNITS[k].power} • own ${p.units[k]}</small></div></div>
+<div class="ctrls"><input type="number" id="qty_${k}" min="1" max="9999" value="${Actions.qtys[k]||1}" oninput="Actions.setQty('${k}',this.value)"><button onclick="Actions.trainN('${k}')" ${p.money<UNITS[k].cost?'disabled':''}>Buy</button><button class="bmax" onclick="Actions.trainMax('${k}')" ${p.money<UNITS[k].cost?'disabled':''}>Max</button></div></div>`).join("")}
+</div>`);
+},
+render_build(){const p=State.countries[PLAYER];
+this.content(`
+<div class="panel"><h3>🏗️ Construct Buildings <small style="opacity:.6;font-weight:normal">(set quantity, then Buy)</small></h3>
+${Object.keys(BUILDINGS).map(k=>`<div class="buy"><div class="hd"><div><b>${BUILDINGS[k].icon} ${BUILDINGS[k].label}</b><small>${BUILDINGS[k].cost}💰 each • ${BUILDINGS[k].desc} • own ${p.buildings[k]}</small></div></div>
+<div class="ctrls"><input type="number" id="qty_${k}" min="1" max="9999" value="${Actions.qtys[k]||1}" oninput="Actions.setQty('${k}',this.value)"><button onclick="Actions.buildN('${k}')" ${p.money<BUILDINGS[k].cost?'disabled':''}>Buy</button><button class="bmax" onclick="Actions.buildMax('${k}')" ${p.money<BUILDINGS[k].cost?'disabled':''}>Max</button></div></div>`).join("")}
+</div>`);
+},
+render_diplo(){const p=State.countries[PLAYER];
+const rows=State.countries.filter(c=>c.id!==PLAYER&&!c._dead).sort((a,b)=>score(b)-score(a)).map(c=>{
+const isAlly=p.alliances.includes(c.id),isWar=p.wars.includes(c.id);
+return `<div class="item ${isWar?'enemy':isAlly?'ally':''}">
+<div style="display:flex;justify-content:space-between"><b>${c.name}</b><span>${isWar?'⚔️ War':isAlly?'🤝 Allied':'Neutral'}</span></div>
+<div style="opacity:.7;margin:3px 0">📍${c.cells.length} • 🎖️${milPower(c)} • ${c.stance}</div>
+<div class="grid2">
+${isWar?`<button onclick="Actions.peace(${c.id})">🕊️ Peace</button>`:`<button onclick="Actions.attack(${c.id})">⚔️ Attack</button>`}
+${isAlly?'':`<button onclick="Actions.ally(${c.id})" ${isWar?'disabled':''}>🤝 Ally</button>`}
+</div></div>`;
+}).join("");
+this.content(`<div class="panel"><h3>🌐 Foreign Relations</h3>${rows||"<small>No other nations remain.</small>"}</div>`);
+},
+render_stats(){const p=State.countries[PLAYER];
+const ranked=[...State.countries].filter(c=>!c._dead).sort((a,b)=>score(b)-score(a));
+const rows=ranked.map((c,i)=>`<div class="rank ${c.id===PLAYER?'me':''}"><span class="sw" style="background:${c.color}"></span><span class="nm">${i+1}. ${c.name}</span><span>📍${c.cells.length} 🎖️${milPower(c)}</span></div>`).join("");
+this.content(`
+<div class="panel"><h3>📈 Your Territory History</h3><canvas id="spark" width="300" height="60"></canvas></div>
+<div class="panel"><h3>🏆 World Power Rankings</h3>${rows}</div>
+`);
+this.drawSpark(p.history);
+},
+render_news(){this.renderNews();},
+renderNews(){this.content(`<div class="panel"><h3>📰 World News</h3><div id="newsList"></div></div>`);
+document.getElementById("newsList").innerHTML=State.news.slice(0,80).map(n=>`<div class="news ${n.cls}">Y${n.y}: ${n.t}</div>`).join("");
+},
+renderAchievements(){const p=State.countries[PLAYER];const a=[];
+if(p.cells.length>=25)a.push("Regional Power");
+if(p.cells.length>=60)a.push("Continental Empire");
+if(p.cells.length>=120)a.push("World Hegemon");
+if(p.money>=100000)a.push("Economic Titan");
+if(milPower(p)>=1000)a.push("Military Superpower");
+if(p.alliances.length>=4)a.push("Master Diplomat");
+if(p.buildings.ports>=3)a.push("Naval Power");
+if(p.tech>=50)a.push("Scientific Leader");
+const el=document.getElementById("ach");if(el)el.innerHTML=a.length?a.map(x=>`<div class="item">🏆 ${x}</div>`).join(""):"<small style='opacity:.6'>Keep playing to earn achievements…</small>";
+},
+drawSpark(hist){const cv=document.getElementById("spark");if(!cv)return;const c=cv.getContext("2d");c.clearRect(0,0,cv.width,cv.height);if(hist.length<2){c.fillStyle="#64748b";c.font="11px Arial";c.fillText("Collecting data…",10,34);return;}
+const max=Math.max(...hist,1);c.strokeStyle="#4ade80";c.lineWidth=2;c.beginPath();
+hist.forEach((v,i)=>{const x=i/(hist.length-1)*cv.width;const y=cv.height-(v/max)*(cv.height-8)-4;i?c.lineTo(x,y):c.moveTo(x,y);});c.stroke();
+c.fillStyle="rgba(74,222,128,.15)";c.lineTo(cv.width,cv.height);c.lineTo(0,cv.height);c.fill();},
+askNewWorld(){document.getElementById("confirm").classList.remove("hidden");},
+closeConfirm(){document.getElementById("confirm").classList.add("hidden");},
+updateViewButtons(){
+const vm=State.viewMode;
+document.getElementById("viewCountry").style.background=vm==="country"?"linear-gradient(135deg,#667eea,#764ba2)":"#1e293b";
+document.getElementById("viewLand").style.background=vm==="landscape"?"linear-gradient(135deg,#667eea,#764ba2)":"#1e293b";
+document.getElementById("viewGeo").style.background=vm==="geography"?"linear-gradient(135deg,#667eea,#764ba2)":"#1e293b";
+}
+};
+
+// ---------- Game controller ----------
+let pendingGameMode="";
+const Game={
+speed:1, simTimer:null,
+enter(){document.getElementById("menu").classList.add("hidden");document.getElementById("confirm").classList.add("hidden");document.getElementById("nameModal").classList.add("hidden");document.getElementById("topbar").classList.remove("hidden");document.getElementById("main").classList.remove("hidden");resize();UI.tab("overview");if(UI.isMobile())document.getElementById("side").classList.remove("open");this.run();requestAnimationFrame(renderFrame);},
+askPlayerName(mode){pendingGameMode=mode;document.getElementById("playerName").value="";document.getElementById("nameModal").classList.remove("hidden");setTimeout(()=>document.getElementById("playerName").focus(),50);},
+confirmName(){const name=(document.getElementById("playerName").value||"Your Nation").trim();Game.start(pendingGameMode,name);},
+cancelNameModal(){document.getElementById("nameModal").classList.add("hidden");pendingGameMode="";},
+start(mode,customName){PLAYER=0;genWorld((Math.random()*1e9)|0);if(mode==="random"){const i=1+((Math.random()*(State.countries.length-1))|0);swapPlayer(i);}State.countries[PLAYER].name=customName||"Your Nation";State.countries[PLAYER].isPlayer=true;this.enter();this.save();},
+run(){if(this.simTimer)clearInterval(this.simTimer);if(State.paused)return;this.simTimer=setInterval(()=>{simTick();UI.refresh();if(State.turn%(YEAR_TURNS*2)===0)this.save();},Math.round(1000/this.speed));},
+changeSpeed(d){this.speed=clamp(+(this.speed+d*0.5).toFixed(1),0.5,10);document.getElementById("spd").textContent=this.speed.toFixed(1)+"×";if(!State.paused)this.run();},
+togglePause(){State.paused=!State.paused;document.getElementById("pauseBtn").textContent=State.paused?"▶️ Resume":"⏸️ Pause";if(State.paused){clearInterval(this.simTimer);}else{this.run();}},
+advanceYears(y){const turns=y*YEAR_TURNS;news("⏭️ Fast-forwarding "+y+" years…","");for(let i=0;i<turns;i++)simTick();UI.refresh();this.save();news("📅 "+y+" years have passed. The map has shifted.","good");},
+newWorld(){UI.closeConfirm();clearInterval(this.simTimer);genWorld((Math.random()*1e9)|0);State.countries[PLAYER].name="Your Nation";State.countries[PLAYER].isPlayer=true;this.speed=1;State.paused=false;document.getElementById("pauseBtn").textContent="⏸️ Pause";Camera.x=0;Camera.y=0;Camera.zoom=1;Camera.needs=true;UI.tab("overview");this.run();this.save();},
+save(){try{
+const data={v:1,seed:State.seed,turn:State.turn,player:PLAYER,
+owner:Array.from(State.owner),
+countries:State.countries.map(c=>({id:c.id,name:c.name,isPlayer:c.isPlayer,money:Math.round(c.money),gdp:Math.round(c.gdp),population:c.population,tax:c.tax,tech:c.tech,military:Math.round(c.military),capital:c.capital,alliances:c.alliances,wars:c.wars,buildings:c.buildings,units:c.units,personality:c.personality,stance:c.stance,color:c.color,history:c.history,_dead:c._dead||false})),
+news:State.news.slice(0,120)};
+localStorage.setItem(SAVE_KEY,JSON.stringify(data));
+}catch(e){console.warn("save failed",e);}},
+load(){const raw=localStorage.getItem(SAVE_KEY);if(!raw)return;
+try{const d=JSON.parse(raw);
+genWorld(d.seed);            // rebuild terrain deterministically
+State.owner=Int16Array.from(d.owner);
+State.turn=d.turn;PLAYER=d.player;State.news=d.news||[];
+State.countries=d.countries.map(c=>({...c,cells:[]}));
+for(let id=0;id<State.owner.length;id++){const o=State.owner[id];if(o>=0&&State.countries[o])State.countries[o].cells.push(id);}
+State.mapDirty=true;this.enter();
+}catch(e){console.warn("load failed",e);localStorage.removeItem(SAVE_KEY);alert("Save was corrupted; starting fresh.");}}
+};
+
+function swapPlayer(i){
+// make country i the player by moving it to index 0 conceptually; simplest: just set PLAYER=i
+PLAYER=i;for(const c of State.countries)c.isPlayer=(c.id===i);
+}
+
+// ---------- PWA: install prompt + service worker ----------
+const PWA={
+deferred:null,
+init(){
+// service worker
+if("serviceWorker" in navigator){
+window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").catch(e=>console.warn("SW failed",e));});
+}
+// install prompt (Android / desktop Chromium)
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();this.deferred=e;const b=document.getElementById("installBtn");if(b)b.style.display="block";});
+window.addEventListener("appinstalled",()=>{this.deferred=null;const b=document.getElementById("installBtn");if(b)b.style.display="none";});
+// iOS Safari hint (no beforeinstallprompt support)
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const standalone=window.matchMedia("(display-mode: standalone)").matches||window.navigator.standalone;
+if(isIOS&&!standalone){const h=document.getElementById("iosHint");if(h)h.style.display="block";}
+},
+async install(){
+if(!this.deferred){alert("To install: use your browser menu → “Add to Home Screen” / “Install app”.");return;}
+this.deferred.prompt();
+try{await this.deferred.userChoice;}catch(e){}
+this.deferred=null;const b=document.getElementById("installBtn");if(b)b.style.display="none";
+}
+};
+
+// ---------- Boot ----------
+if(localStorage.getItem(SAVE_KEY))document.getElementById("loadBtn").style.display="block";
+PWA.init();
+// keep canvas sized correctly even before game start
+window.addEventListener("load",()=>{try{resize();}catch(e){}});
+</script>
+</body>
+</html>
